@@ -1,6 +1,6 @@
-install.packages("EloRating")
-install.packages("tidyverse")
-installed.packages("volleysim")
+#install.packages("EloRating")
+#install.packages("tidyverse")
+#installed.packages("volleysim")
 library(tidyverse)
 library(readr)
 library(writexl)
@@ -202,13 +202,13 @@ get_team_schedule <- function(team_name, team_id, sport, year){
 
 # You have to run the line below every time because the NCAA website created new links to games recently played and this function finds the links
 
-NCAA_all <- map2(NCAA_teams$Name, NCAA_teams$ID, get_team_schedule, sport = "Men's Volleyball", year = 2022)
+NCAA_all_23 <- map2(NCAA_teams$Name, NCAA_teams$ID, get_team_schedule, sport = "Men's Volleyball", year = 2023)
 
 # Lots of warnings will pop up because several teams do not support Women's Volleyball
 
-NCAA_games <- bind_rows(NCAA_all)  # turns it into a data frame
+NCAA_games_23 <- bind_rows(NCAA_all_23)  # turns it into a data frame
 
-NCAA_all_games <- NCAA_games[-which(duplicated(NCAA_games$url)),] %>% filter(!is.na(url)) # remove duplicated games
+NCAA_all_games_23 <- NCAA_games_23[-which(duplicated(NCAA_games_23$url)),] %>% filter(!is.na(url)) # remove duplicated games
 
 ###### Step 3: Get the information for the games ######
 
@@ -242,10 +242,10 @@ safe_pbp_boxscore_links <- function(url) {
            error = function(e) NULL)
 }
 
-pbp_box_urls <- map_df(NCAA_all_games$url, safe_pbp_boxscore_links)
+pbp_box_urls <- map_df(NCAA_all_games_23$url, safe_pbp_boxscore_links)
 #NCAA_game_pbp <- bind_cols(NCAA_all_games, pbp_box_urls) %>% mutate(game_id = str_remove(play_by_play, "https://stats.ncaa.org/game/play_by_play/"))
 
-NCAA_game_pbp <- inner_join(NCAA_all_games, pbp_box_urls, by = "url") %>% mutate(game_id = str_remove(play_by_play, "https://stats.ncaa.org/game/play_by_play/"))
+NCAA_game_pbp <- inner_join(NCAA_all_games_23, pbp_box_urls, by = "url") %>% mutate(game_id = str_remove(play_by_play, "https://stats.ncaa.org/game/play_by_play/"))
 
 NCAA_pbp_url <- NCAA_game_pbp$play_by_play[which(!is.na(NCAA_game_pbp$play_by_play))]  # remove any missing play-by-play links
 
@@ -256,8 +256,8 @@ NCAA_pbp_url <- NCAA_game_pbp$play_by_play[which(!is.na(NCAA_game_pbp$play_by_pl
 library(lubridate)
 last_sunday_date <- "2022-11-13"
 sunday_date <- "2022-11-20"
-NCAA_new_games <- NCAA_all_games %>% filter(date > ymd(last_sunday_date), date <= ymd(sunday_date))  # finds only the new games
-pbp_box_urls_new <- map_df(NCAA_new_games$url, safe_pbp_boxscore_links)  %>% right_join(NCAA_new_games, by = "url")
+NCAA_new_games_23 <- NCAA_all_games_23 %>% filter(date > ymd(last_sunday_date), date <= ymd(sunday_date))  # finds only the new games
+pbp_box_urls_new <- map_df(NCAA_new_games_23$url, safe_pbp_boxscore_links)  %>% right_join(NCAA_new_games_23, by = "url")
 
 #NCAA_game_pbp <- bind_rows(NCAA_all_games, pbp_box_urls_new) %>% mutate(game_id = str_remove(play_by_play, "https://stats.ncaa.org/game/play_by_play/"))
 NCAA_game_pbp <- pbp_box_urls_new %>% mutate(game_id = str_remove(play_by_play, "https://stats.ncaa.org/game/play_by_play/"))
@@ -462,14 +462,14 @@ vb_play_by_play_ncaa2 <- function(pbp_url){
 
 
 # Note: there may be some problems here with vb_play_by_play if a play-by-play exists but isn't formatted in either expected way
-all_NCAA_pbp <- map(NCAA_pbp_url, vb_play_by_play)
+all_NCAA_pbp_23 <- map(NCAA_pbp_url, vb_play_by_play)
 
-all_NCAA_pbp_df <- bind_rows(all_NCAA_pbp) %>% fill(away_score, home_score, .direction= "down") %>%
+all_NCAA_pbp_df_23 <- bind_rows(all_NCAA_pbp_23) %>% fill(away_score, home_score, .direction= "down") %>%
   filter(!(player_name %in% c("Set end", "Set ended")))
-all_NCAA_pbp_df <- all_NCAA_pbp_df %>% mutate(id = seq(1, nrow(all_NCAA_pbp_df)))
+all_NCAA_pbp_df_23 <- all_NCAA_pbp_df_23 %>% mutate(id = seq(1, nrow(all_NCAA_pbp_df_23)))
 
 # Now we merge with the data frame containing the links
-full_pbp <- all_NCAA_pbp_df %>% 
+full_pbp_23 <- all_NCAA_pbp_df_23 %>% 
   left_join(NCAA_game_pbp %>% select(game_id, location, box_score, play_by_play), by = c("ncaa_match_id" = "game_id")) %>%
   mutate(ncaa_match_id = as.numeric(ncaa_match_id))
 #### After this is the Bradley Terry rankings ####
@@ -967,6 +967,17 @@ a4 <- NCAA_box_df %>%
 a4_winner <- a4 %>% mutate(winner = if_else(away_sets > home_sets, away, home),
                            sets = away_sets + home_sets)
 
+NCAA_box_df <- NCAA_box_df %>% 
+  mutate(winner = if_else(away_sets > home_sets, away, home),
+         loser = if_else(away_sets > home_sets, home, away),
+         sets = away_sets + home_sets)
+
+NCAA_box_df <- NCAA_box_df %>% mutate(game_date = substr(date, 1, 10))
+
+seqcheck(winner = NCAA_box_df$winner,
+         loser = NCAA_box_df$loser,
+         Date = NCAA_box_df$game_date)
+
 # Find the missing games that now have play-by-play
 #a4_missing <- a4_winner %>% filter(!(game_id %in% unique(full_pbp$ncaa_match_id)), !is.na(play_by_play))
 
@@ -1142,7 +1153,7 @@ seqcheck(winner = sets$winner,
          loser = sets$loser, 
          Date = sets$date)
 
-?seqcheck
+
 
 #trying different k values (default is 100)
 res_20 <- elo.seq(winner = sets$winner, 
