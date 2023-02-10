@@ -1,13 +1,14 @@
 #install.packages("EloRating")
 #install.packages("tidyverse")
-#installed.packages("volleysim")
-library(tidyverse)
-library(readr)
-library(writexl)
+#install.packages("volleysim")
+
+
 
 ###trying again
 ## Step 0: Load the necessary packages
-
+library(readr)
+library(writexl)
+library(readxl)
 library(tidyverse) # umbrella load several packages for data manipulation
 library(httr)
 library(rvest) # httr and rvest should cover all the web-scraping needs
@@ -254,8 +255,8 @@ NCAA_pbp_url <- NCAA_game_pbp$play_by_play[which(!is.na(NCAA_game_pbp$play_by_pl
 ## Generally this option works better if you already have a dataset of play-by-play for previous games
 
 library(lubridate)
-last_sunday_date <- "2022-11-13"
-sunday_date <- "2022-11-20"
+last_sunday_date <- "2023-01-27"
+sunday_date <- "2023-02-12"
 NCAA_new_games_23 <- NCAA_all_games_23 %>% filter(date > ymd(last_sunday_date), date <= ymd(sunday_date))  # finds only the new games
 pbp_box_urls_new <- map_df(NCAA_new_games_23$url, safe_pbp_boxscore_links)  %>% right_join(NCAA_new_games_23, by = "url")
 
@@ -948,11 +949,11 @@ clean_vb_box_score <- function(box_score_table){
 
 NCAA_box_url <- NCAA_game_pbp$box_score[which(!is.na(NCAA_game_pbp$box_score))]
 
-all_NCAA_box <- suppressWarnings(map(NCAA_box_url, vb_boxscore))
+all_NCAA_box <- suppressWarnings(map(NCAA_box_url, vb_boxscore)) #put _23 on?
 
 all_NCAA_box <- all_NCAA_box[lengths(all_NCAA_box) > 0]
 
-NCAA_box_df <- (all_NCAA_box %>% transpose())$info %>% bind_rows()
+NCAA_box_df <- (all_NCAA_box %>% transpose())$info %>% bind_rows() #now just for new games
 
 a4 <- NCAA_box_df %>% 
   left_join((NCAA_game_pbp %>% mutate(
