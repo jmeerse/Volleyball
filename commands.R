@@ -5,7 +5,7 @@
 
 
 ###trying again
-## Step 0: Load the necessary packages
+#### Step 0: Load the necessary packages ####
 library(readr)
 library(writexl)
 library(readxl)
@@ -85,7 +85,7 @@ NCAA_teams <- team_mapping() %>% filter(Conference %in%
 
 
 #### Option 1b: store the list of teams in an Excel file and import ####
-#NCAA_teams <- read_excel("NCAA_teams.xlsx") # for Excel file
+NCAA_teams <- read_excel("NCAA_teams.xlsx") # for Excel file
 # OR
 # NCAA_teams <- read_csv("NCAA_teams.csv") # for CSV file
 
@@ -243,12 +243,12 @@ safe_pbp_boxscore_links <- function(url) {
            error = function(e) NULL)
 }
 
-pbp_box_urls <- map_df(NCAA_all_games_23$url, safe_pbp_boxscore_links)
-#NCAA_game_pbp <- bind_cols(NCAA_all_games, pbp_box_urls) %>% mutate(game_id = str_remove(play_by_play, "https://stats.ncaa.org/game/play_by_play/"))
+pbp_box_urls_23 <- map_df(NCAA_all_games_23$url, safe_pbp_boxscore_links)
+NCAA_game_pbp_23 <- bind_cols(NCAA_all_games_23, pbp_box_urls_23) %>% mutate(game_id = str_remove(play_by_play, "https://stats.ncaa.org/game/play_by_play/"))
 
-NCAA_game_pbp <- inner_join(NCAA_all_games_23, pbp_box_urls, by = "url") %>% mutate(game_id = str_remove(play_by_play, "https://stats.ncaa.org/game/play_by_play/"))
+NCAA_game_pbp_23 <- inner_join(NCAA_all_games_23, pbp_box_urls_23, by = "url") %>% mutate(game_id = str_remove(play_by_play, "https://stats.ncaa.org/game/play_by_play/"))
 
-NCAA_pbp_url <- NCAA_game_pbp$play_by_play[which(!is.na(NCAA_game_pbp$play_by_play))]  # remove any missing play-by-play links
+NCAA_pbp_url_23 <- NCAA_game_pbp_23$play_by_play[which(!is.na(NCAA_game_pbp_23$play_by_play))]  # remove any missing play-by-play links
 
 #### Option 3b: Get the information for only the new games in the dataset ####
 
@@ -258,11 +258,11 @@ library(lubridate)
 last_sunday_date <- "2023-01-27"
 sunday_date <- "2023-02-12"
 NCAA_new_games_23 <- NCAA_all_games_23 %>% filter(date > ymd(last_sunday_date), date <= ymd(sunday_date))  # finds only the new games
-pbp_box_urls_new <- map_df(NCAA_new_games_23$url, safe_pbp_boxscore_links)  %>% right_join(NCAA_new_games_23, by = "url")
+pbp_box_urls_new_23 <- map_df(NCAA_new_games_23$url, safe_pbp_boxscore_links)  %>% right_join(NCAA_new_games_23, by = "url")
 
-#NCAA_game_pbp <- bind_rows(NCAA_all_games, pbp_box_urls_new) %>% mutate(game_id = str_remove(play_by_play, "https://stats.ncaa.org/game/play_by_play/"))
-NCAA_game_pbp <- pbp_box_urls_new %>% mutate(game_id = str_remove(play_by_play, "https://stats.ncaa.org/game/play_by_play/"))
-NCAA_pbp_url <- NCAA_game_pbp$play_by_play[which(!is.na(NCAA_game_pbp$play_by_play))]
+NCAA_game_pbp_23 <- bind_rows(NCAA_all_games_23, pbp_box_urls_new_23) %>% mutate(game_id = str_remove(play_by_play, "https://stats.ncaa.org/game/play_by_play/"))
+NCAA_game_pbp_23 <- pbp_box_urls_new_23 %>% mutate(game_id = str_remove(play_by_play, "https://stats.ncaa.org/game/play_by_play/"))
+NCAA_pbp_url_23 <- NCAA_game_pbp_23$play_by_play[which(!is.na(NCAA_game_pbp_23$play_by_play))]
 
 
 ###### Step 4: Get the play-by-play data for each (new) game ######
@@ -463,7 +463,7 @@ vb_play_by_play_ncaa2 <- function(pbp_url){
 
 
 # Note: there may be some problems here with vb_play_by_play if a play-by-play exists but isn't formatted in either expected way
-all_NCAA_pbp_23 <- map(NCAA_pbp_url, vb_play_by_play)
+all_NCAA_pbp_23 <- map(NCAA_pbp_url_23, vb_play_by_play)
 
 all_NCAA_pbp_df_23 <- bind_rows(all_NCAA_pbp_23) %>% fill(away_score, home_score, .direction= "down") %>%
   filter(!(player_name %in% c("Set end", "Set ended")))
@@ -471,7 +471,7 @@ all_NCAA_pbp_df_23 <- all_NCAA_pbp_df_23 %>% mutate(id = seq(1, nrow(all_NCAA_pb
 
 # Now we merge with the data frame containing the links
 full_pbp_23 <- all_NCAA_pbp_df_23 %>% 
-  left_join(NCAA_game_pbp %>% select(game_id, location, box_score, play_by_play), by = c("ncaa_match_id" = "game_id")) %>%
+  left_join(NCAA_game_pbp_23 %>% select(game_id, location, box_score, play_by_play), by = c("ncaa_match_id" = "game_id")) %>%
   mutate(ncaa_match_id = as.numeric(ncaa_match_id))
 #### After this is the Bradley Terry rankings ####
 
@@ -807,13 +807,13 @@ predictions_file <- paste0("predictions_", prediction_date, ".csv")
 write_csv(games_predictions_final %>% filter(!is.na(`Predicted Winner`)), predictions_file)
 
 
-###### Step 15: Download boxscore data and see how good your predictions were
+#### Step 15: Download boxscore data and see how good your predictions were ####
 
 
 # This parses the box score data
 # The result is two lists:
 # info gives information about the game like how many sets and how many points each team won
-# player_stats gives the player staats
+# player_stats gives the player stats
 
 vb_boxscore <- function(box_score_url, include_set_scores = FALSE){
   game <- vector("list")
@@ -947,16 +947,16 @@ clean_vb_box_score <- function(box_score_table){
 }
 
 
-NCAA_box_url <- NCAA_game_pbp$box_score[which(!is.na(NCAA_game_pbp$box_score))]
+NCAA_box_url_23 <- NCAA_game_pbp_23$box_score[which(!is.na(NCAA_game_pbp_23$box_score))]
 
-all_NCAA_box <- suppressWarnings(map(NCAA_box_url, vb_boxscore)) #put _23 on?
+all_NCAA_box_23 <- suppressWarnings(map(NCAA_box_url_23, vb_boxscore)) #put _23 on?
 
-all_NCAA_box <- all_NCAA_box[lengths(all_NCAA_box) > 0]
+all_NCAA_box_23 <- all_NCAA_box_23[lengths(all_NCAA_box_23) > 0]
 
-NCAA_box_df <- (all_NCAA_box %>% transpose())$info %>% bind_rows() #now just for new games
+NCAA_box_df_23 <- (all_NCAA_box_23 %>% transpose())$info %>% bind_rows() #now just for new games
 
-a4 <- NCAA_box_df %>% 
-  left_join((NCAA_game_pbp %>% mutate(
+a4_23 <- NCAA_box_df_23 %>% 
+  left_join((NCAA_game_pbp_23 %>% mutate(
     home = str_replace(home, "\\\\u0026", "&"),
     away = str_replace(away, "\\\\u0026", "&"),
     location = str_replace(location, "\\\\u0026", "&")
@@ -965,19 +965,24 @@ a4 <- NCAA_box_df %>%
          away = str_remove_all(away, "#[0-9]+ "),
          location = str_remove_all(location, "#[0-9]+ "))
 
-a4_winner <- a4 %>% mutate(winner = if_else(away_sets > home_sets, away, home),
+a4_winner_23 <- a4_23 %>% mutate(winner = if_else(away_sets > home_sets, away, home),
                            sets = away_sets + home_sets)
 
-NCAA_box_df <- NCAA_box_df %>% 
+NCAA_box_df_23 <- NCAA_box_df_23 %>% 
   mutate(winner = if_else(away_sets > home_sets, away, home),
          loser = if_else(away_sets > home_sets, home, away),
          sets = away_sets + home_sets)
 
-NCAA_box_df <- NCAA_box_df %>% mutate(game_date = substr(date, 1, 10))
+NCAA_box_df_23 <- NCAA_box_df_23 %>% mutate(game_date = substr(date, 1, 10))
 
-seqcheck(winner = NCAA_box_df$winner,
-         loser = NCAA_box_df$loser,
-         Date = NCAA_box_df$game_date)
+NCAA_box_df_23$game_date <- lubridate::ymd(NCAA_box_df_23$game_date)
+NCAA_box_df_23 <- arrange(NCAA_box_df_23, game_date)
+
+seqcheck(winner = NCAA_box_df_23$winner,
+         loser = NCAA_box_df_23$loser,
+         Date = NCAA_box_df_23$game_date) #checks to make sure ELO can run
+
+#can jump to 1162 #
 
 # Find the missing games that now have play-by-play
 #a4_missing <- a4_winner %>% filter(!(game_id %in% unique(full_pbp$ncaa_match_id)), !is.na(play_by_play))
@@ -1147,8 +1152,7 @@ records %>% ggplot(aes(x = wins, y = pyth_wins)) +
   geom_smooth(method = "lm", se = F)
 
 #### ELO below ####
-sets$date <- as.Date(sets$date)
-sets$date <- as.character(sets$date)
+
 
 seqcheck(winner = sets$winner, 
          loser = sets$loser, 
@@ -1157,13 +1161,13 @@ seqcheck(winner = sets$winner,
 
 
 #trying different k values (default is 100)
-res_20 <- elo.seq(winner = sets$winner, 
-               loser = sets$loser, 
-               Date = sets$date, 
+ELOrankings_23 <- elo.seq(winner = NCAA_box_df_23$winner, 
+               loser = NCAA_box_df_23$loser, 
+               Date = NCAA_box_df_23$date, 
                runcheck = F,
                k = 20)
 
-elo22_20<- as.data.frame(extract_elo(res_20))
+elo23<- as.data.frame(extract_elo(ELOrankings_23))
 #need to include ranking with each k-value
 #need row indices to become a vector
 elo22_20 <- cbind(Team = rownames(elo22_20), elo22_20) #here Team is a row name
@@ -1173,9 +1177,9 @@ elo_all <- left_join(elo22, elo22_20) #if you had run two different k values
 
 eloplot(res_20)
 
-elo_20 <- res_20[["logtable"]]
+elo_23 <- ELOrankings_23[["logtable"]]
 
-Hawaii <- elo_20 %>% filter(winner == "Hawaii" | loser == "Hawaii") %>%
+Hawaii <- elo_23 %>% filter(winner == "Hawaii" | loser == "Hawaii") %>%
   mutate(elo = ifelse(winner == "Hawaii", Apost, Bpost))
  
 Hawaii %>% ggplot(aes(x = Date, y = elo)) + geom_line() + geom_text(aes(label = elo))
